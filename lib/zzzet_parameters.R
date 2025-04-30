@@ -1,27 +1,23 @@
-# Behaviour calculation       =====
-#' Set parameters for AE/BV calculation
+#                       PROJECT VARIABLES                                  =====
+# Set parameters for AE/BV calculation
 nback=25
 which.apen=2
 
-# Outputs         ======
-# The produced figure/tables 
-outputs <- list(
-  figs = list(),
-  tbls = list()
-)
+# Saving list for figures and tables
+figs = list()
+tbls = list()
 
-# Set ggplot colours        =====
+# Set ggplot colours
 if( getOption("project_custom_ggplot") ){
+  #' Only after all local libraries have beeen loaded can we set the custom colour
   options(
-    ggplot2.continous.colour = gen_col("rbgo"),
-    ggplot2.continous.fill   = gen_col("rbgo"), 
-    ggplot2.discrete.colour  = gen_col("rbgo"), 
-    ggplot2.discrete.fill    = gen_col("rbgo")
+    ggplot2.continous.colour   = gen_col("rbgo")
+    , ggplot2.continous.fill   = gen_col("rbgo")
+    , ggplot2.discrete.colour  = gen_col("rbgo")
+    , ggplot2.discrete.fill    = gen_col("rbgo")
   )
   theme_set( theme_bw() )
 }
-
-
 
 # Experiment information          =======
 experiment_information <- list(
@@ -38,7 +34,7 @@ experiment_information <- list(
         probe2 = "1 = helt klart ingenting; 4 = helt klart noe spesifikt",
         probe3 = "1 = helt klart spontan; 4 = helt klart bevisst")
     ),
-    
+
     # Participant feedback
     participant_feedback = list(
       questions = list(
@@ -59,7 +55,7 @@ experiment_information <- list(
         comment_other = "Text answer")
     )
   ),
-  
+
   en = list(
     probe_information = list(
       questions = list(
@@ -73,7 +69,7 @@ experiment_information <- list(
         probe3 = "1 = definitely spontaneous; 4 = definitely aware"
       )
     ),
-    
+
     participant_feedback = list(
       questions = list(
         gloves = "Please evaluate to what extent you were distracted by wearing disposable gloves during the task:",
