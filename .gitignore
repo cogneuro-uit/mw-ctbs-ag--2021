@@ -1,0 +1,6 @@
+#*json # All json extensions
+#/data # Exclude uploads of data.
+.Rproj.user
+.Rhistory
+.RData
+.Ruserdata
