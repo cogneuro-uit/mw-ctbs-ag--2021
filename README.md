@@ -1,4 +1,4 @@
-# mw-itbs-dlpfc-2024
+# mw-ctbs-ag--2021
 
 Data, analysis and experimental materials for the paper "Reducing mind wandering using continuous theta burst stimulation".
 
