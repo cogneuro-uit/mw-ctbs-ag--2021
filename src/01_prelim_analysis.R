@@ -2,7 +2,7 @@ library(ProjectTemplate)
 load.project()
 
 data |>
-  group_by(subj,session,block) |> 
+  group_by(subj,session,block) |>
   summarize(nbeep=sum(stimulus=="stimulus"),
             ntap=sum(response %in% c("lctrl", "rctrl")),
             ntapleft=sum(response %in% c("lctrl")),
@@ -16,15 +16,15 @@ data |>
 nback=25
 data |> group_by(subj,session,block,proberound) |> do({
   d <- .
-  
+
   ## unravel taps (keys)
   taps=d$response[d$stimulus=="tap"]
   taps=factor(taps, levels=c("lctrl","rctrl"), labels=c("left","right"))
   taps=as.integer(taps)-1
   taps=tail(taps, nback)
-  
-  iti=diff(d$time[d$stimulus=="tap"]) |> tail(nback-1) 
-  
+
+  iti=diff(d$time[d$stimulus=="tap"]) |> tail(nback-1)
+
   probe1.resp=as.integer(d$response[d$stimulus=="probe1"])+1
   probe2.resp=as.integer(d$response[d$stimulus=="probe2"])+1
   probe3.resp=as.integer(d$response[d$stimulus=="probe3"])+1
@@ -37,7 +37,7 @@ data |> group_by(subj,session,block,proberound) |> do({
     apen=apen_int(taps, 2)[3],
     bv=sd(iti)
   )
-}) |> ungroup() |>  
+}) |> ungroup() |>
   mutate(probe1=ordered(probe1, levels=1:4),
          probe2=ordered(probe2, levels=1:4),
          probe3=ordered(probe3, levels=1:4),
@@ -48,7 +48,7 @@ data |> group_by(subj,session,block,proberound) |> do({
 
 
 #' put together with randomization list
-#' 
+#'
 randlist.ag <- read_csv("data/export/randlist_ag_Nyp7ObM.csv", comment = "#")
 randlist.pfc <- read_csv("data/export/randlist_pfc_Nyp7ObM.csv", comment="#")
 left_join(data.probe, bind_rows(randlist.ag, randlist.pfc) ) |>
@@ -64,10 +64,10 @@ data.probe.cond |> group_by(region,session) |>
 
 
 #' Bayesian model (combining regions)
-#' 
+#'
 library(brms)
 library(bayesplot)
-mod <- brm(probe1 ~ zlogapen*zlogbv + stimulation + block*stimulation + scale(proberound) + (1|subj), 
+mod <- brm(probe1 ~ zlogapen*zlogbv + stimulation + block*stimulation + scale(proberound) + (1|subj),
            init=0, family=cumulative("probit"), data=data.probe.cond)
 brms::rhat(mod) %>% max(na.rm=T)
 summary(mod)
@@ -78,9 +78,9 @@ mcmc_intervals(as.matrix(mod), pars=gpars)+geom_vline(xintercept = 0, linetype="
 conditional_effects(mod)
 
 #' Model for AG only
-#' 
+#'
 data.probe.cond.ag <- data.probe.cond |> filter(region=="Angular Gyrus")
-mod.ag <- brm(probe1 ~ zlogapen*zlogbv + stimulation + block*stimulation + scale(proberound) + (1|subj), 
+mod.ag <- brm(probe1 ~ zlogapen*zlogbv + stimulation + block*stimulation + scale(proberound) + (1|subj),
               init=0, family=cumulative("probit"), data=data.probe.cond.ag)
 brms::rhat(mod.ag) %>% max(na.rm=T)
 summary(mod.ag)
@@ -91,9 +91,9 @@ mcmc_intervals(as.matrix(mod.ag), pars=gpars)+geom_vline(xintercept = 0, linetyp
 conditional_effects(mod.ag)
 
 #' Model for PFC only
-#' 
+#'
 data.probe.cond.pfc <- data.probe.cond |> filter(region=="Prefrontal Cortex")
-mod.pfc <- brm(probe1 ~ zlogapen*zlogbv + stimulation + block*stimulation + scale(proberound) + (1|subj), 
+mod.pfc <- brm(probe1 ~ zlogapen*zlogbv + stimulation + block*stimulation + scale(proberound) + (1|subj),
               init=0, family=cumulative("probit"), data=data.probe.cond.pfc)
 brms::rhat(mod.pfc) %>% max(na.rm=T)
 summary(mod.pfc)
@@ -113,13 +113,13 @@ gpars=pars[!str_detect(pars, "r_")][!str_detect(pars, "Intercept")]
 mcmc_intervals(as.matrix(mod.bv), pars=gpars)+geom_vline(xintercept = 0, linetype="dashed")
 conditional_effects(mod.bv)
 
-data.probe.cond |> 
+data.probe.cond |>
   ggplot(aes(y=zlogbv, x=block, color=stimulation))+
   stat_summary(fun.data=mean_se, geom="pointrange")+
   stat_summary(fun=mean, geom="line", mapping=aes(group=stimulation))+
   facet_wrap(~region)
 
-data.probe.cond |> 
+data.probe.cond |>
   ggplot(aes(y=zlogapen, x=block, color=stimulation))+
   stat_summary(fun.data=mean_se, geom="pointrange")+
   stat_summary(fun=mean, geom="line", mapping=aes(group=stimulation))+
@@ -156,7 +156,7 @@ data.probe.cond.diff |>
 
 
 #' AE and BV over blocks split by sham vs. real and region
-#' 
+#'
 data.probe.cond |>
   gather(var,val,zlogapen,zlogbv) |>
   ggplot(aes(x=block,y=val,color=stimulation))+
@@ -167,7 +167,6 @@ data.probe.cond |>
   labs()
 
 #' change from B0
-#' 
 data.probe.cond |>
   select(subj,stimulation,block,zlogapen,zlogbv)
 
