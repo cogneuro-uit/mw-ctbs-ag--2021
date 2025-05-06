@@ -41,7 +41,7 @@ ag.data <-
   ag.raw |>
   left_join(randlist.ag, "subj") |>
   mutate(
-    stimulation=if_else(session=="S1", session1, session2)
+    stimulation = if_else(session=="S1", session1, session2) |> fct_relevel("sham")
     , across(matches("^probe\\d$"), ~ordered(5-as.numeric(.x)))
     , proberound_prop = proberound/max(proberound)
   ) |>

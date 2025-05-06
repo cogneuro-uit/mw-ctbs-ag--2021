@@ -7,7 +7,7 @@ selected_demographics <-
 
 # Bind demo to data
 ag.data.demo <-
-  d.pro.stim_ag |>
+  ag.data |>
   left_join(
     selected_demographics
     , by = join_by("subj"=="Code", "session"=="name_session")
