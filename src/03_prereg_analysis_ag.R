@@ -4,47 +4,51 @@ library(ProjectTemplate)
 load.project()
 
 
-#' We will perform a 2x4 rmANOVA (repeated measures analysis of variance) 
-#' of task-focus (mind wandering) with stimulation type (active versus sham) 
+# ANOVA       =====
+#' We will perform a 2x4 rmANOVA (repeated measures analysis of variance)
+#' of task-focus (mind wandering) with stimulation type (active versus sham)
 #' and block (B0, B1, B2, & B3).
-data.probe.cond |> filter(region=="Angular Gyrus") |> 
+data.wide.ag <-
+  ag.data |>
   select(subj,block,proberound,MW=probe1,AE=zlogapen, BV=zlogbv, stimulation) |>
   group_by(subj,block,stimulation) |>
-  summarize(MW=mean(as.numeric(MW)), AE=mean(AE), BV=mean(BV)) |> 
+  summarize(MW=mean(as.numeric(MW)), AE=mean(AE), BV=mean(BV)) |>
   gather(var,val,MW,AE,BV) |>
   ungroup() |>
   pivot_wider(names_from=c("var","stimulation","block"),
-              values_from = val) -> data.wide.ag
+              values_from = val)
 View(data.wide.ag)
 write_csv(data.wide.ag, file="data/export/data_ag_aggregate_wide.csv")
 
 
-data.probe.cond |> filter(region=="Angular Gyrus") |> 
+data.wide.ag.mw23 <-
+  ag.data |>
   select(subj,block,proberound,MW1=probe1, MW2=probe2, MW3=probe3, AE=zlogapen, BV=zlogbv, stimulation) |>
   group_by(subj,block,stimulation) |>
-  summarize(MW1=mean(as.numeric(MW1)), MW2=mean(as.numeric(MW2)), MW3=mean(as.numeric(MW3)), 
-            AE=mean(AE), BV=mean(BV)) |> 
+  summarize(MW1=mean(as.numeric(MW1)), MW2=mean(as.numeric(MW2)), MW3=mean(as.numeric(MW3)),
+            AE=mean(AE), BV=mean(BV)) |>
   gather(var,val,MW1,MW2,MW3,AE,BV) |>
   ungroup() |>
   pivot_wider(names_from=c("var","stimulation","block"),
-              values_from = val) -> data.wide.ag.mw23
+              values_from = val)
 View(data.wide.ag.mw23)
 write_csv(data.wide.ag.mw23, file="data/export/data_ag_aggregate_wide_mwall.csv")
 
-
-#' If this rmANOVA is significant, we will calculate the difference between 
-#' real and sham session (real-sham) for each block (both measures are 
-#' within-subject). We will then compare this difference between B0 
-#' (baseline) and the other three blocks using planned contrast (with Tukey's 
-#' adjustment for multiple comparisons). We expect that this difference will 
-#' be larger than baseline (B0) in all three post-stimulation blocks (B1, B2, 
-#' and B3) indicating that real stimulation reduced the amount of MW relative 
-#' to sham stimulation. Next, we will investigate whether this tentative effect 
-#' will grow with repeated stimulations by comparing real-sham difference 
-#' between B1 and B2, B1 and B3 as well as B2 and B3. We expect that all these 
-#' comparisons to be larger than zero, indicating that effect gets stronger 
-#' with repeated application of the stimulation. 
-data.probe.cond |> filter(region=="Angular Gyrus") |> na.omit() |> 
+## Visualize      ====
+#' If this rmANOVA is significant, we will calculate the difference between
+#' real and sham session (real-sham) for each block (both measures are
+#' within-subject). We will then compare this difference between B0
+#' (baseline) and the other three blocks using planned contrast (with Tukey's
+#' adjustment for multiple comparisons). We expect that this difference will
+#' be larger than baseline (B0) in all three post-stimulation blocks (B1, B2,
+#' and B3) indicating that real stimulation reduced the amount of MW relative
+#' to sham stimulation. Next, we will investigate whether this tentative effect
+#' will grow with repeated stimulations by comparing real-sham difference
+#' between B1 and B2, B1 and B3 as well as B2 and B3. We expect that all these
+#' comparisons to be larger than zero, indicating that effect gets stronger
+#' with repeated application of the stimulation.
+data.probe.cond.diff <-
+  ag.data |>
   select(subj, region, stimulation, block, proberound, zlogapen, zlogbv, probe1)|>
   mutate(probe1=as.integer(probe1)) |>
   gather(var,val,zlogapen,zlogbv,probe1) |>
@@ -64,7 +68,7 @@ data.probe.cond |> filter(region=="Angular Gyrus") |> na.omit() |>
          B3_mw=-(B3_probe1-B0_probe1)) |>
   select(-ends_with("zlogapen"), -ends_with("zlogbv"), -ends_with("probe1")) |>
   pivot_longer(starts_with("B"), names_to = c("block","variable"), names_sep = "_") |>
-  mutate(variable=fct_recode(variable, AE="ae",BV="bv",MW="mw")) -> data.probe.cond.diff
+  mutate(variable=fct_recode(variable, AE="ae",BV="bv",MW="mw"))
 
 data.probe.cond.diff |>
   ggplot(aes(y=value, x=block, color=stimulation))+
@@ -75,7 +79,8 @@ data.probe.cond.diff |>
   facet_grid(.~variable)
 
 ## looks like I did not average across proberounds for this plot, fixing:
-data.probe.cond |> filter(region=="Angular Gyrus") |> na.omit() |> 
+data.probe.cond.diff2 <-
+  ag.data |>
   select(subj, region, stimulation, block, proberound, zlogapen, zlogbv, probe1)|>
   mutate(probe1=as.integer(probe1)) |>
   group_by(subj, stimulation, block) |>
@@ -97,7 +102,7 @@ data.probe.cond |> filter(region=="Angular Gyrus") |> na.omit() |>
          B3_mw=-(B3_probe1-B0_probe1)) |>
   select(-ends_with("zlogapen"), -ends_with("zlogbv"), -ends_with("probe1")) |>
   pivot_longer(starts_with("B"), names_to = c("block","variable"), names_sep = "_") |>
-  mutate(variable=fct_recode(variable, AE="ae",BV="bv",MW="mw")) -> data.probe.cond.diff2
+  mutate(variable=fct_recode(variable, AE="ae",BV="bv",MW="mw"))
 
 
 data.probe.cond.diff2 |>
@@ -118,11 +123,12 @@ data.probe.cond.diff2 |>
 #'   instruction_text = u"Were you deliberate about where you focused your attention (either on-task or elsewhere) or did it happen spontaneously?",
 #'   scale_labels = [u"Clearly \n SPONTANEOUS", "", "", u"Clearly \n DELIBERATE"])
 
-data.probe.cond |> filter(region=="Angular Gyrus") |> na.omit() |> 
+data.probe.cond.diff3 <-
+  ag.data |>
   select(subj, region, stimulation, block, proberound, zlogapen, zlogbv, starts_with("probe")) |>
   mutate(blank=as.integer(probe1<=2 & probe2<=2),
          spontaneous=as.integer(probe1<=2 & probe3<=2)) |>
-  select(-probe2,-probe3) |> 
+  select(-probe2,-probe3) |>
   mutate(probe1=as.integer(probe1)) |>
   group_by(subj, stimulation, block) |>
   summarize(across(c(probe1, blank, spontaneous, zlogapen, zlogbv), mean)) |>
@@ -151,16 +157,17 @@ data.probe.cond |> filter(region=="Angular Gyrus") |> na.omit() |>
          B3_smw=B3_spontaneous-B2_spontaneous) |>
   select(-ends_with("zlogapen"), -ends_with("zlogbv"), -ends_with("probe1"), -ends_with("blank"), -ends_with("spontaneous")) |>
   pivot_longer(starts_with("B"), names_to = c("block","variable"), names_sep = "_") |>
-  mutate(variable=fct_recode(variable, AE="ae",BV="bv",MW="mw", MB="mb", `spontaneous MW`="smw")) -> data.probe.cond.diff3
+  mutate(variable=fct_recode(variable, AE="ae",BV="bv",MW="mw", MB="mb", `spontaneous MW`="smw"))
 
 
 
-data.probe.cond |> filter(region=="Angular Gyrus") |> na.omit() |> 
+data.probe.cond.diff4 <-
+  ag.data |>
   select(subj, region, stimulation, block, proberound, zlogapen, zlogbv, starts_with("probe")) |>
   filter(probe1<=2) |> ## only MW probes!
   mutate(blank=as.integer(probe2<=2),
          spontaneous=as.integer(probe3<=2)) |>
-  select(-probe1,-probe2,-probe3) |> 
+  select(-probe1,-probe2,-probe3) |>
   group_by(subj, stimulation, block) |>
   summarize(across(c(blank, spontaneous), mean)) |>
   gather(var,val,blank,spontaneous) |>
@@ -176,8 +183,7 @@ data.probe.cond |> filter(region=="Angular Gyrus") |> na.omit() |>
          B3_smw=B3_spontaneous-B2_spontaneous) |>
   select(-ends_with("zlogapen"), -ends_with("zlogbv"), -ends_with("probe1"), -ends_with("blank"), -ends_with("spontaneous")) |>
   pivot_longer(starts_with("B"), names_to = c("block","variable"), names_sep = "_") |>
-  mutate(variable=fct_recode(variable, MB="mb", `spontaneous MW`="smw")) -> data.probe.cond.diff4
-
+  mutate(variable=fct_recode(variable, MB="mb", `spontaneous MW`="smw"))
 
 
 data.probe.cond.diff3 |>
@@ -201,109 +207,103 @@ data.probe.cond.diff4 |>
   labs(y=latex2exp::TeX("$\\Delta$ proportion"))+
   facet_grid(.~variable) -> p2
 
-library(patchwork)
 pobj <- (p1+p2+plot_layout(widths = c(3, 2)))
-ggsave(filename = "graphs/paper_ag_summary.pdf", width=10, height=3)
-  
+ggsave(filename = "figures/paper_ag_summary.pdf", width=10, height=3)
+
+
+# Bayesian models         =====
 ##' Quantify differences using the Bayesian regression models
-##' 
-library(brms)
-library(bayesplot)
-library(cmdstanr)
+##'
 
 #' Model for AG only
-#' 
-#' ====== MW =======
-data.probe.cond.ag <- data.probe.cond |> filter(region=="Angular Gyrus")
+#'
+## ====== MW =======
+# MW with Behaviour
+mod.ag.mw.behav <- brm(probe1 ~ stimulation + block*stimulation + zlogapen * zlogbv + scale(proberound) + (1|subj),
+                       init=0, family=cumulative("probit"), data=ag.data,
+                       backend = "cmdstanr", chains = 6, iter=7000)
+brms::pp_check(  mod.ag.mw.behav, ndraws=50)
+bayes_chain_stab(mod.ag.mw.behav)
+bayes_diag(      mod.ag.mw.behav)
 
-mod.ag.mw.behav <- brm(probe1 ~ stimulation + block*stimulation + zlogapen * zlogbv + scale(proberound) + (1|subj), 
-                 init=0, family=cumulative("probit"), data=data.probe.cond.ag, 
-                 backend = "cmdstanr", chains = 6, iter=3000)
-summary(mod.ag.mw.behav)
 
-mod.ag.mw <- brm(probe1 ~ stimulation + block*stimulation + scale(proberound) + (1|subj), 
-                 init=0, family=cumulative("probit"), data=data.probe.cond.ag, 
-                 backend = "cmdstanr", chains = 6, iter=3000)
-brms::rhat(mod.ag.mw) %>% max(na.rm=T)
-summary(mod.ag.mw)
-pars=setdiff(variables(mod.ag.mw), c("disc","lp__", "lprior"))
-gpars=pars[!str_detect(pars, "(r_.+)|(z_.*)|(Intercept.*)")]
-mcmc_intervals(as.matrix(mod.ag.mw), pars=gpars, prob_outer = 0.95)+
-  geom_vline(xintercept = 0, linetype="dashed")+labs(title="MW")
+# MW (anova equivalent) base model
+mod.ag.mw <- brm(probe1 ~ stimulation + block*stimulation + scale(proberound) + (1|subj),
+                 init=0, family=cumulative("probit"), data=ag.data,
+                 backend = "cmdstanr", chains = 6, iter=7000)
+brms::pp_check(  mod.ag.mw, ndraws=50)
+bayes_chain_stab(mod.ag.mw)
+bayes_diag(      mod.ag.mw)
 
 
 #' MW model with common baseline in B0
-data.probe.cond.ag2 <- data.probe.cond |> filter(region=="Angular Gyrus") |>
+data.probe.cond.ag2 <- ag.data |>
   mutate(blockB1=as.integer(block=="B1"),
          blockB2=as.integer(block=="B2"),
          blockB3=as.integer(block=="B3"),
          zproberound=scale(proberound))
-mod.ag.mw2 <- brm(probe1 ~ blockB1 + blockB1:stimulation + blockB2 + blockB2:stimulation + blockB3 + blockB3:stimulation + 
-                    zproberound + (1|subj), 
-                 init=0, family=cumulative("probit"), data=data.probe.cond.ag2, backend = "cmdstanr", chains = 6, iter=3000)
 
-brms::rhat(mod.ag.mw2) %>% max(na.rm=T)
-summary(mod.ag.mw2)
-pars=setdiff(variables(mod.ag.mw2), c("disc","lp__", "lprior"))
-gpars=pars[!str_detect(pars, "(r_.+)|(z_.*)|(Intercept.*)")]
-mcmc_intervals(as.matrix(mod.ag.mw2), pars=gpars)+
-  geom_vline(xintercept = 0, linetype="dashed")+labs(title="MW")
+mod.ag.mw2 <- brm(
+  probe1 ~ blockB1 + blockB1:stimulation + blockB2 + blockB2:stimulation +
+    blockB3 + blockB3:stimulation + zproberound + (1|subj)
+  , data=data.probe.cond.ag2, init=0, family=cumulative("probit")
+  , backend = "cmdstanr", chains = 6, iter=7000)
+brms::pp_check(  mod.ag.mw2, ndraws=50)
+bayes_chain_stab(mod.ag.mw2)
+bayes_diag(      mod.ag.mw2)
 
-
-mod.ag.mw |> add_criterion(criterion = c("loo","bayes_R2")) -> mod.ag.mw
-mod.ag.mw2 |> add_criterion(criterion = c("loo","bayes_R2")) -> mod.ag.mw2
+# model compare
+mod.ag.mw <- mod.ag.mw |> add_criterion(criterion = c("loo","bayes_R2"))
+mod.ag.mw2 <- mod.ag.mw2 |> add_criterion(criterion = c("loo","bayes_R2"))
 loo_compare(mod.ag.mw, mod.ag.mw2)
 
 
-#' ====== MB + spontaneous =========
-
-data.probe.cond.ag |> 
-  filter(probe1<=2) |>
-  mutate(zproberound=scale(proberound)) |>
-  mutate(MB=probe2<=2,
-         sMW=probe3<=2) -> dd
-
-## MB logistic regression
-mod.ag.mb <- brm(MB ~ stimulation + block*stimulation + zproberound + (1|subj), 
-                 init=0, data=dd, family=bernoulli(link="logit"),  
-                 backend = "cmdstanr", chains = 6, iter=3000)
-brms::rhat(mod.ag.mb) %>% max(na.rm=T)
-summary(mod.ag.mb)
-pars=setdiff(variables(mod.ag.mb), c("disc","lp__", "lprior"))
-gpars=pars[!str_detect(pars, "(r_.+)|(z_.*)|(Intercept.*)")]
-
-mcmc_intervals(as.matrix(mod.ag.mb), pars=gpars, prob_outer = 0.95)+
-  geom_vline(xintercept = 0, linetype="dashed")+labs(title="MB")
-
-## spontaneous logistic regression
-mod.ag.smw <- brm(sMW ~ stimulation + block*stimulation + zproberound + (1|subj), 
-                 init=0, data=dd, family=bernoulli(link="logit"),  
-                 backend = "cmdstanr", chains = 6, iter=3000)
-brms::rhat(mod.ag.smw) %>% max(na.rm=T)
-summary(mod.ag.smw)
-pars=setdiff(variables(mod.ag.smw), c("disc","lp__", "lprior"))
-gpars=pars[!str_detect(pars, "(r_.+)|(z_.*)|(Intercept.*)")]
-
-mcmc_intervals(as.matrix(mod.ag.smw), pars=gpars, prob_outer = 0.95)+
-  geom_vline(xintercept = 0, linetype="dashed")+labs(title="SMW")
+## ====== MB =========
+mod.ag.mb <- brm(
+  probe2 ~ blockB1 + blockB1:stimulation + blockB2 + blockB2:stimulation +
+    blockB3 + blockB3:stimulation + zproberound + (1|subj)
+  , data = data.probe.cond.ag2 |> filter(probe1>2) # flipped mw
+  , init=0,  family=cumulative(link="probit")
+  , backend = "cmdstanr", chains = 6, iter=7000)
+brms::pp_check(  mod.ag.mb, ndraws=50)
+bayes_chain_stab(mod.ag.mb)
+bayes_diag(      mod.ag.mb)
 
 
-#' ====== AE =======
-mod.ag.ae <- brm(zlogapen ~ stimulation + block*stimulation + scale(proberound) + (1|subj), 
-                 init=0, data=data.probe.cond.ag, backend = "cmdstanr", chains = 6, iter=3000)
-brms::rhat(mod.ag.ae) %>% max(na.rm=T)
-summary(mod.ag.ae)
-mcmc_intervals(as.matrix(mod.ag.ae), pars=gpars, prob_outer = 0.95)+
-  geom_vline(xintercept = 0, linetype="dashed")+labs(title="AE")
+## ====== SMW ======
+mod.ag.smw <- brm(
+  probe3 ~ blockB1 + blockB1:stimulation + blockB2 + blockB2:stimulation +
+    blockB3 + blockB3:stimulation + zproberound + (1|subj)
+  , data = data.probe.cond.ag2 |> filter(probe1>2) # flipped mw
+  , init=0, family=cumulative(link="probit")
+  , backend = "cmdstanr", chains = 6, iter=7000)
+brms::pp_check(  mod.ag.smw, ndraws=50)
+bayes_chain_stab(mod.ag.smw)
+bayes_diag(      mod.ag.smw)
 
-#' ====== BV =======
-mod.ag.bv <- brm(zlogbv ~ stimulation + block*stimulation + scale(proberound) + (1|subj), 
-                 init=0, data=data.probe.cond.ag, backend = "cmdstanr", chains = 6, iter=3000)
-brms::rhat(mod.ag.bv) %>% max(na.rm=T)
-summary(mod.ag.bv)
-mcmc_intervals(as.matrix(mod.ag.bv), pars=gpars, prob_outer = 0.95)+
-  geom_vline(xintercept = 0, linetype="dashed")+labs(title="BV")
 
+## ====== AE =======
+mod.ag.ae <- brm(
+  zlogapen ~ blockB1 + blockB1:stimulation + blockB2 + blockB2:stimulation +
+    blockB3 + blockB3:stimulation + zproberound + (1|subj)
+  , data=data.probe.cond.ag2, init=0, backend = "cmdstanr", chains = 6, iter=7000)
+brms::pp_check(  mod.ag.ae, ndraws=50)
+bayes_chain_stab(mod.ag.ae)
+bayes_diag(      mod.ag.ae)
+
+
+## ====== BV =======
+mod.ag.bv <- brm(
+  zlogbv ~ blockB1 + blockB1:stimulation + blockB2 + blockB2:stimulation +
+    blockB3 + blockB3:stimulation + zproberound + (1|subj)
+  , data=data.probe.cond.ag2, backend = "cmdstanr"
+  , init=0,  chains = 6, iter=7000)
+brms::pp_check(  mod.ag.bv, ndraws=50)
+bayes_chain_stab(mod.ag.bv)
+bayes_diag(      mod.ag.bv)
+
+
+## Criterion    ======
 mod.ag.ae  <- brms::add_criterion(mod.ag.ae,  criterion = c("bayes_R2", "loo"))
 mod.ag.bv  <- brms::add_criterion(mod.ag.bv,  criterion = c("bayes_R2", "loo"))
 mod.ag.mw  <- brms::add_criterion(mod.ag.mw,  criterion = c("bayes_R2", "loo"))
@@ -311,14 +311,17 @@ mod.ag.mb  <- brms::add_criterion(mod.ag.mb,  criterion = c("bayes_R2", "loo"))
 mod.ag.smw <- brms::add_criterion(mod.ag.smw, criterion = c("bayes_R2", "loo"))
 
 
-save(mod.ag.ae, mod.ag.bv, mod.ag.mw, mod.ag.mb, mod.ag.smw, file="data/export/paper_vars.RData")
-load("data/export/paper_vars.RData")
+### save    ======
+save(mod.ag.ae, mod.ag.bv, mod.ag.mw, mod.ag.mb, mod.ag.smw,
+     file = "data/paper_vars-2025-05-06.RData")
+load("data/export/paper_vars-2025-05-06.RData")
 
-## plot from models
-library(tidybayes)
 
-as.data.frame(mod.ag.mw) |> 
-  select(starts_with("b_block"), starts_with("b_stimulation")) |> 
+
+## Plot models ======
+# plot from models
+as.data.frame(mod.ag.mw) |>
+  select(starts_with("b_block"), starts_with("b_stimulation")) |>
   mutate(B0_mw_sham=0,
          B0_mw_real=b_stimulationreal,
          B1_mw_sham=b_blockB1,
@@ -326,7 +329,7 @@ as.data.frame(mod.ag.mw) |>
          B2_mw_sham=b_blockB2,
          B2_mw_real=b_blockB2+`b_stimulationreal:blockB2`,
          B3_mw_sham=b_blockB3,
-         B3_mw_real=b_blockB3+`b_stimulationreal:blockB3`) |> 
+         B3_mw_real=b_blockB3+`b_stimulationreal:blockB3`) |>
   select(starts_with("B", ignore.case=F)) |>
   gather(var,val) |>
   mutate(val=-1*val) |>
@@ -336,8 +339,8 @@ as.data.frame(mod.ag.mw) |>
   stat_summary(fun=mean, geom="line", aes(group=stimulation), position=position_dodge(width=0.2))
 
 
-as.data.frame(mod.ag.mw2) |> 
-  select(starts_with("b_block"), starts_with("b_stimulation")) |> 
+as.data.frame(mod.ag.mw2) |>
+  select(starts_with("b_block"), starts_with("b_stimulation")) |>
   mutate(B0_mw_sham=0,
          B0_mw_real=0,
          B1_mw_sham=b_blockB1,
@@ -345,7 +348,7 @@ as.data.frame(mod.ag.mw2) |>
          B2_mw_sham=b_blockB2,
          B2_mw_real=b_blockB2+`b_blockB2:stimulationreal`,
          B3_mw_sham=b_blockB3,
-         B3_mw_real=b_blockB3+`b_blockB3:stimulationreal`) |> 
+         B3_mw_real=b_blockB3+`b_blockB3:stimulationreal`) |>
   select(starts_with("B", ignore.case=F)) |>
   gather(var,val) |>
   mutate(val=-1*val) |>
@@ -353,7 +356,6 @@ as.data.frame(mod.ag.mw2) |>
   ggplot(aes(x=block, y=val, color=stimulation))+
   stat_summary(fun.data=mean_qi, geom="pointrange", position=position_dodge(width=0.2))+
   stat_summary(fun=mean, geom="line", aes(group=stimulation), position=position_dodge(width=0.2))
-         
 
 
 
